@@ -15,24 +15,27 @@ permissions:
 jobs:
   # Ensures VERSION matches the release tag.
   update_release_version_file:
+    if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+    uses: ./.github/workflows/reusable-update-version-file.yml
+    with:
+      version: ${{ github.event.release.tag_name }}
+    permissions:
+      contents: write
+
+  update_release_tag:
+    needs: update_release_version_file
+    if: ${{ needs.update_release_version_file.outputs.needs_update == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
-        if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         uses: actions/checkout@v5
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Update Version, commit and push changes
-        if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-        id: update_version_file
-        uses: ./.github/workflows/reusable-update-version-file.yml
-        with:
-          version: ${{ github.event.release.tag_name }}
-
       - name: Update tag and release target
-        if: ${{ github.event_name == 'release' && github.event.action == 'published' && steps.update_version_file.outputs.needs_update == 'true' }}
         run: |
           git log
           COMMIT_SHA=$(git rev-parse HEAD)
@@ -48,7 +51,8 @@ jobs:
 
   # On release.published, this will create a new draft.
   update_release_draft:
-    needs: update_release_version_file
+    needs: [update_release_version_file, update_release_tag]
+    if: ${{ !failure() && !cancelled() }}
     outputs:
       resolved_version: ${{ steps.release_drafter.outputs.resolved_version }}
     permissions:
@@ -65,11 +69,8 @@ jobs:
   update_main_version_file:
     needs: update_release_draft
     if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-      - name: Update Version, commit and push changes
-        uses: ./.github/workflows/reusable-update-version-file.yml
-        with:
-          version: ${{ needs.update_release_draft.outputs.resolved_version }}
+    uses: ./.github/workflows/reusable-update-version-file.yml
+    with:
+      version: ${{ needs.update_release_draft.outputs.resolved_version }}
+    permissions:
+      contents: write
