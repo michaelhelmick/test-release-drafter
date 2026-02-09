@@ -15,23 +15,24 @@ permissions:
 jobs:
   # Ensures VERSION matches the release tag.
   update_release_version_file:
-    if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
+        if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         uses: actions/checkout@v5
         with:
           ref: main
           fetch-depth: 0
 
       - name: Update Version, commit and push changes
+        if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
         id: update_version_file
         uses: ./.github/workflows/reusable-update-version-file.yml
         with:
           version: ${{ github.event.release.tag_name }}
 
       - name: Update tag and release target
-        if: ${{ steps.update_version_file.outputs.needs_update == 'true' }}
+        if: ${{ github.event_name == 'release' && github.event.action == 'published' && steps.update_version_file.outputs.needs_update == 'true' }}
         run: |
           git log
           COMMIT_SHA=$(git rev-parse HEAD)

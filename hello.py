@@ -11,3 +11,4 @@ if __name__ == "__main__":
     print(today())
     print("Thanks!")
     print("Thanks 2!")
+    print("Thanks 3!")
