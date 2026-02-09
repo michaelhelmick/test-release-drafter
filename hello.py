@@ -13,3 +13,6 @@ if __name__ == "__main__":
     print("Thanks 2!")
     print("Thanks 3!")
     print("Another one!")
+    print("Anotha one!")
+    print("Anotha one!")
+    print("Trying one!")
