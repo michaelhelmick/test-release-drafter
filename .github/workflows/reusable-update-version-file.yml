@@ -1,0 +1,58 @@
+name: Update Version File
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      version_file:
+        required: false
+        type: string
+        default: "VERSION"
+    outputs:
+      needs_update:
+        description: "Whether the VERSION file needed to be updated"
+        value: ${{ jobs.update_version_file.outputs.needs_update }}
+
+jobs:
+  update_version_file:
+    name: "Update VERSION file"
+    runs-on: ubuntu-latest
+    outputs:
+      needs_update: ${{ steps.check.outputs.needs_update }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Check if VERSION needs update
+        id: check
+        run: |
+          CURRENT_VERSION=$(cat ${{ inputs.version_file }} | tr -d '\n')
+          INPUT_VERSION="${{ inputs.version }}"
+
+          echo "Current VERSION: ${CURRENT_VERSION}"
+          echo "Input VERSION: ${INPUT_VERSION}"
+
+          if [ "$CURRENT_VERSION" = "$INPUT_VERSION" ]; then
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "VERSION file is already up to date"
+          else
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "VERSION file needs update"
+          fi
+
+      - name: Update VERSION file
+        if: ${{ steps.check.outputs.needs_update == 'true' }}
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+          echo "${{ inputs.version }}" > ${{ inputs.version_file }}
+          cat ${{ inputs.version_file }}
+
+          git add ${{ inputs.version_file }}
+          git commit -m "chore: update VERSION to ${{ inputs.version }} [ci skip]"
+          git push origin main

@@ -13,12 +13,62 @@ permissions:
   contents: read
 
 jobs:
+  # Ensures VERSION matches the release tag.
+  update_release_version_file:
+    if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Update Version, commit and push changes
+        id: update_version_file
+        uses: ./.github/workflows/reusable-update-version-file.yml
+        with:
+          version: ${{ github.event.release.tag_name }}
+
+      - name: Update tag and release target
+        if: ${{ steps.update_version_file.outputs.needs_update == 'true' }}
+        run: |
+          git log
+          COMMIT_SHA=$(git rev-parse HEAD)
+
+          # Force update the tag to point to the new commit with VERSION update
+          git tag -f ${{ github.event.release.tag_name }} $COMMIT_SHA
+          git push -f origin ${{ github.event.release.tag_name }}
+
+          gh release edit ${{ github.event.release.tag_name }} \
+            --target $COMMIT_SHA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # On release.published, this will create a new draft.
   update_release_draft:
+    needs: update_release_version_file
+    outputs:
+      resolved_version: ${{ steps.release_drafter.outputs.resolved_version }}
     permissions:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        id: release_drafter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Updates VERSION to the next (draft) version.
+  update_main_version_file:
+    needs: update_release_draft
+    if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Update Version, commit and push changes
+        uses: ./.github/workflows/reusable-update-version-file.yml
+        with:
+          version: ${{ needs.update_release_draft.outputs.resolved_version }}
