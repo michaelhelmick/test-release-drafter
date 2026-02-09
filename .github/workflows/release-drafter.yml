@@ -15,6 +15,7 @@ permissions:
 jobs:
   # Ensures VERSION matches the release tag.
   update_release_version_file:
+    name: "Update Release VERSION file"
     if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
     uses: ./.github/workflows/reusable-update-version-file.yml
     with:
@@ -23,6 +24,7 @@ jobs:
       contents: write
 
   update_release_tag:
+    name: "Update Release Tag"
     needs: update_release_version_file
     if: ${{ needs.update_release_version_file.outputs.needs_update == 'true' }}
     runs-on: ubuntu-latest
@@ -51,6 +53,7 @@ jobs:
 
   # On release.published, this will create a new draft.
   update_release_draft:
+    name: "Update Release Draft"
     needs: [update_release_version_file, update_release_tag]
     if: ${{ !failure() && !cancelled() }}
     outputs:
@@ -67,6 +70,7 @@ jobs:
 
   # Updates VERSION to the next (draft) version.
   update_main_version_file:
+    name: "Update main VERSION file"
     needs: update_release_draft
     if: ${{ github.event_name == 'release' && github.event.action == 'published' }}
     uses: ./.github/workflows/reusable-update-version-file.yml
