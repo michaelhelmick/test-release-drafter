@@ -47,7 +47,7 @@ jobs:
           git push -f origin ${{ github.event.release.tag_name }}
 
           gh release edit ${{ github.event.release.tag_name }} \
-            --target $COMMIT_SHA
+            --target $COMMIT_SHA --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
