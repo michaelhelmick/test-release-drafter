@@ -13,6 +13,16 @@ permissions:
   contents: read
 
 jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Info"
+        run: |
+          echo "Event Name:"
+          echo ${{ github.event_name }}
+          echo "\nEvent Action:"
+          echo ${{ github.event.action }}
+
   # Ensures VERSION matches the release tag.
   update_release_version_file:
     name: "Update Release VERSION file"
